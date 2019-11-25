@@ -30,6 +30,9 @@ extern struct PROCESSPAGETABLE *ptbr;
 int getfreeframe();
 int searchvirtualframe();
 int getfifo();
+int get_free_virtual_frame();
+int get_free_physical_frame();
+int find_page_to_push();
 
 int pagefault(char *vaddress)
 {
@@ -53,7 +56,7 @@ int pagefault(char *vaddress)
         /* Se relaciona con la parte de abajo, esta parte indica si la pagina estaba en memoria secundaria */
         in_virtual_mem = TRUE;
         
-        vframe = ptbr[page_del_proceso].framenumber;
+        vframe = ptbr[pag_del_proceso].framenumber;
 		// Lee el marco virtual al buffer
         readblock(buffer, vframe);
         // Libera el frame virtual
@@ -79,19 +82,19 @@ int pagefault(char *vaddress)
         }
 		
         // Busca un frame virtual en memoria secundaria
-        v_frame = get_free_virtual_frame();
+        vframe = get_free_virtual_frame();
 		// Si no hay frames virtuales en memoria secundaria regresa error
-        if(v_frame == ERROR)
+        if(vframe == ERROR)
 		{
             return(-1);
         }
         // Copia el frame a memoria secundaria
-        copyframe(ptbr[pag_a_expulsar].framenumber, v_frame);
+        copyframe(ptbr[pag_a_expulsar].framenumber, vframe);
         //libera el marco de la memoria principal
         ptbr[pag_a_expulsar].presente = FALSE;
-        ptbr[pag_a_expulsar].framenumber = v_frame;
+        ptbr[pag_a_expulsar].framenumber = vframe;
         //Actualiza la tabla de páginas 
-        systemframetable[v_frame].assigned = TRUE;
+        systemframetable[vframe].assigned = TRUE;
         systemframetable[frame].assigned = FALSE;
     }
 
@@ -140,7 +143,7 @@ int get_free_virtual_frame()
     /* Retorna el primer indice de marco virtual disponible que se encuentre */
     int start_of_virtual_mem = framesbegin + TOTFRAMES;
     //Debido a que la memoria virtual se encuentra inmediatamente despues de la fisica
-    int end_of_vitual_mem = start_of_vitual_mem + TOTFRAMES;
+    int end_of_virtual_mem = start_of_virtual_mem + TOTFRAMES;
     for(int count = start_of_virtual_mem; count < end_of_virtual_mem; count++)
     {
         if(systemframetable[count].assigned == FALSE)
